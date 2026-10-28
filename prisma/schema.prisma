@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(AUTHOR)
+  authorId     String?  @unique
+  author       Author?  @relation(fields: [authorId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+enum Role {
+  AUTHOR
+  ADMIN
+}
+
+model Author {
+  id         String   @id
+  name       String
+  email      String   @unique
+  phone      String
+  city       String
+  joinedDate DateTime
+  user       User?
+  books      Book[]
+  tickets    Ticket[]
+}
+
+model Book {
+  id                 String    @id
+  authorId           String
+  author             Author    @relation(fields: [authorId], references: [id])
+  title              String
+  isbn               String
+  genre              String
+  publicationDate    DateTime?
+  status             String
+  mrp                Int?
+  royaltyPerCopy     Int?
+  totalCopiesSold    Int       @default(0)
+  totalRoyaltyEarned Int       @default(0)
+  royaltyPaid        Int       @default(0)
+  royaltyPending     Int       @default(0)
+  lastPayoutDate     DateTime?
+  printPartner       String?
+  availableOn        String[]
+  tickets            Ticket[]
+}
+
+model Ticket {
+  id            String           @id @default(cuid())
+  authorId      String
+  author        Author           @relation(fields: [authorId], references: [id])
+  bookId        String?
+  book          Book?            @relation(fields: [bookId], references: [id])
+  subject       String
+  description   String
+  attachmentUrl String?
+  status        TicketStatus     @default(OPEN)
+  category      TicketCategory?
+  priority      Priority?
+  aiCategory    TicketCategory?
+  aiPriority    Priority?
+  aiConfidence  Float?
+  assignedToId  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  messages      TicketMessage[]
+  internalNotes InternalNote[]
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  ROYALTY_PAYMENTS
+  ISBN_METADATA
+  PRINTING_QUALITY
+  DISTRIBUTION_AVAILABILITY
+  BOOK_STATUS_PRODUCTION
+  GENERAL_INQUIRY
+}
+
+enum Priority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+model TicketMessage {
+  id         String     @id @default(cuid())
+  ticketId   String
+  ticket     Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderType SenderType
+  senderName String
+  body       String
+  isAiDraft  Boolean    @default(false)
+  createdAt  DateTime   @default(now())
+}
+
+enum SenderType {
+  AUTHOR
+  ADMIN
+}
+
+model InternalNote {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author    String
+  body      String
+  createdAt DateTime @default(now())
+}
